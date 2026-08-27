@@ -43,8 +43,8 @@ def analyze_style(outfit_id):
             return jsonify({"error": "Outfit has no image URL"}), 400
 
         # Get local image path
-        # Extract filename from URL (assumes URL format includes uploads/)
-        filename = image_url.split("/")[-1]
+        # Extract filename from URL and remove any query parameters
+        filename = image_url.split("/")[-1].split("?")[0]
         upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
         image_path = os.path.join(upload_folder, filename)
 
