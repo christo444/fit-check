@@ -24,6 +24,15 @@ class Config:
     # CORS
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+    # LLM Configuration (Phase 5)
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", None)  # openai, anthropic, groq
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", None)
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", None)
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", None)
+    LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4")
+    LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
+    LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1000"))
+
     @staticmethod
     def validate():
         """Validate required environment variables"""

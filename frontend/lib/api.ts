@@ -125,3 +125,119 @@ export async function detectPose(outfitId: string): Promise<PoseResult> {
   return response.data;
 }
 
+// Phase 3: Color & Pattern Extraction API
+export interface ColorInfo {
+  rgb: [number, number, number];
+  hex: string;
+  percentage: number;
+  name: string;
+}
+
+export interface PatternInfo {
+  type: string;
+  confidence: number;
+}
+
+export interface AttributeItem {
+  detection_id: number;
+  class_name: string;
+  class_id: number;
+  confidence: number;
+  bbox: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    width: number;
+    height: number;
+  };
+  colors: ColorInfo[];
+  pattern: PatternInfo;
+}
+
+export interface AttributeResult {
+  success: boolean;
+  outfit_id: string;
+  items: AttributeItem[];
+  total_items: number;
+  image_dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+// Extract color and pattern attributes from detected items
+export async function extractAttributes(outfitId: string): Promise<AttributeResult> {
+  const response = await api.post(`/api/attributes/${outfitId}`);
+  return response.data;
+}
+
+// Phase 4: Fit Calculation & Size Estimation API
+export type FitType = "tight" | "slim" | "regular" | "oversized";
+
+export interface FitItem {
+  detection_id: number;
+  class_name: string;
+  fit_type: FitType;
+  fit_confidence: number;
+  clothing_width: number;
+  body_width: number;
+  fit_ratio: number;
+  size_estimate: string;
+  size_confidence: number;
+  reasoning: string;
+}
+
+export interface FitResult {
+  success: boolean;
+  outfit_id: string;
+  has_pose_data: boolean;
+  body_measurements: Measurements;
+  items: FitItem[];
+  total_items: number;
+  image_dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+// Analyze clothing fit and estimate size
+export async function analyzeFit(outfitId: string): Promise<FitResult> {
+  const response = await api.post(`/api/fit/${outfitId}`);
+  return response.data;
+}
+
+// Phase 5: LLM Style Analysis API
+export interface StyleAnalysis {
+  type: string;
+  confidence: number;
+  description: string;
+}
+
+export interface OutfitSuggestion {
+  title: string;
+  description: string;
+  items: string[];
+}
+
+export interface LLMResult {
+  success: boolean;
+  outfit_id: string;
+  style: StyleAnalysis;
+  suggestions: OutfitSuggestion[];
+  keywords: string[];
+  advice: string;
+  data_sources?: {
+    detection: boolean;
+    pose: boolean;
+    colors: boolean;
+    fit: boolean;
+  };
+}
+
+// Analyze style using LLM
+export async function analyzeStyle(outfitId: string): Promise<LLMResult> {
+  const response = await api.post(`/api/analyze-style/${outfitId}`);
+  return response.data;
+}
+

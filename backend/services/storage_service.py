@@ -36,16 +36,31 @@ class StorageService:
             Dictionary with outfit_id and image_url
         """
         try:
+            # Check if file already exists and remove it
+            try:
+                existing_files = self.client.storage.from_(self.bucket_name).list(path="")
+                if any(f["name"] == filename for f in existing_files):
+                    print(f"Removing existing file: {filename}")
+                    self.client.storage.from_(self.bucket_name).remove([filename])
+            except Exception as check_error:
+                print(f"Could not check for existing file: {str(check_error)}")
+                # Continue anyway - file might not exist
+
             # Upload file to Supabase Storage
+            print(f"Uploading file to Supabase: {filename}")
             with open(file_path, "rb") as f:
+                file_data = f.read()
                 storage_response = self.client.storage.from_(self.bucket_name).upload(
                     path=filename,
-                    file=f,
-                    file_options={"content-type": "image/jpeg"},
+                    file=file_data,
+                    file_options={"content-type": "image/jpeg", "upsert": "true"},
                 )
+            
+            print(f"Upload response: {storage_response}")
 
             # Get public URL for the uploaded file
             public_url = self.client.storage.from_(self.bucket_name).get_public_url(filename)
+            print(f"Public URL: {public_url}")
 
             # Create outfit record in database
             outfit_data = {
@@ -55,9 +70,14 @@ class StorageService:
                 "updated_at": datetime.utcnow().isoformat(),
             }
 
+            print(f"Creating database record...")
             db_response = self.client.table("outfits").insert(outfit_data).execute()
 
+            if not db_response.data or len(db_response.data) == 0:
+                raise Exception("Failed to create outfit record in database")
+
             outfit = db_response.data[0]
+            print(f"Outfit created with ID: {outfit['id']}")
 
             return {
                 "outfit_id": outfit["id"],
@@ -67,6 +87,8 @@ class StorageService:
 
         except Exception as e:
             print(f"Storage service error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
 
     def get_outfit_by_id(self, outfit_id: str) -> Optional[Dict]:

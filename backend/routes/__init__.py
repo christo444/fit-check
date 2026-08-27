@@ -10,6 +10,9 @@ def register_routes(app):
     from routes.health import health_bp
     from routes.detect import detect_bp
     from routes.pose import pose_bp
+    from routes.attributes import attributes_bp
+    from routes.fit import fit_bp
+    from routes.llm import llm_bp
 
     # Register blueprints
     app.register_blueprint(health_bp)
@@ -17,5 +20,8 @@ def register_routes(app):
     app.register_blueprint(outfit_bp, url_prefix="/api")
     app.register_blueprint(detect_bp, url_prefix="/api")
     app.register_blueprint(pose_bp, url_prefix="/api")
+    app.register_blueprint(attributes_bp, url_prefix="/api")
+    app.register_blueprint(fit_bp, url_prefix="/api")
+    app.register_blueprint(llm_bp, url_prefix="/api")
 
     print("✅ Routes registered successfully")

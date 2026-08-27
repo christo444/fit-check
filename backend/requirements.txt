@@ -8,9 +8,18 @@ gunicorn==22.0.0
 # Phase 2: YOLO Detection
 ultralytics==8.1.0
 opencv-python==4.9.0.80
-numpy==1.26.3
-torch==2.1.2
-torchvision==0.16.2
+numpy==1.26.4
+torch==2.2.0
+torchvision==0.17.0
 
 # Phase 3: MediaPipe Pose Estimation
 mediapipe==0.10.14
+
+# Phase 3: Color & Pattern Extraction
+scikit-learn==1.4.0
+webcolors==1.13
+
+# Phase 5: LLM Style Analysis
+openai>=1.12.0
+anthropic>=0.18.0
+groq>=0.4.0

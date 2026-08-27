@@ -2,12 +2,13 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Sparkles, User } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, User, Palette, Shirt, Brain, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getOutfitById, detectClothing, detectPose, Detection, Landmark, PoseConnection, Measurements } from "@/lib/api";
+import { getOutfitById, detectClothing, detectPose, extractAttributes, analyzeFit, analyzeStyle, Detection, Landmark, PoseConnection, Measurements, AttributeItem, FitItem, LLMResult } from "@/lib/api";
 import { useState } from "react";
 import DetectionOverlay from "@/components/DetectionOverlay";
 import PoseOverlay from "@/components/PoseOverlay";
+import SearchKeyword from "@/components/SearchKeyword";
 
 export default function OutfitDetailPage() {
   const params = useParams();
@@ -22,6 +23,18 @@ export default function OutfitDetailPage() {
   const [connections, setConnections] = useState<PoseConnection[]>([]);
   const [measurements, setMeasurements] = useState<Measurements>({});
   const [showPose, setShowPose] = useState(false);
+
+  // Attributes state
+  const [attributes, setAttributes] = useState<AttributeItem[]>([]);
+  const [showAttributes, setShowAttributes] = useState(false);
+
+  // Fit analysis state
+  const [fitResults, setFitResults] = useState<FitItem[]>([]);
+  const [showFit, setShowFit] = useState(false);
+
+  // LLM Style analysis state
+  const [styleAnalysis, setStyleAnalysis] = useState<LLMResult | null>(null);
+  const [expandedSuggestion, setExpandedSuggestion] = useState<number | null>(null);
 
   const { data: outfit, isLoading, error } = useQuery({
     queryKey: ["outfit", outfitId],
@@ -49,12 +62,52 @@ export default function OutfitDetailPage() {
     },
   });
 
+  const attributesMutation = useMutation({
+    mutationFn: () => extractAttributes(outfitId),
+    onSuccess: (data) => {
+      setAttributes(data.items);
+      setImageDimensions(data.image_dimensions);
+      setShowAttributes(true);
+      setShowPose(false); // Switch to attributes view
+    },
+  });
+
+  const fitMutation = useMutation({
+    mutationFn: () => analyzeFit(outfitId),
+    onSuccess: (data) => {
+      setFitResults(data.items);
+      setImageDimensions(data.image_dimensions);
+      setShowFit(true);
+      setShowPose(false);
+      setShowAttributes(false);
+    },
+  });
+
+  const styleMutation = useMutation({
+    mutationFn: () => analyzeStyle(outfitId),
+    onSuccess: (data) => {
+      setStyleAnalysis(data);
+    },
+  });
+
   const handleDetect = () => {
     detectMutation.mutate();
   };
 
   const handleDetectPose = () => {
     poseMutation.mutate();
+  };
+
+  const handleExtractAttributes = () => {
+    attributesMutation.mutate();
+  };
+
+  const handleAnalyzeFit = () => {
+    fitMutation.mutate();
+  };
+
+  const handleAnalyzeStyle = () => {
+    styleMutation.mutate();
   };
 
   if (isLoading) {
@@ -145,21 +198,21 @@ export default function OutfitDetailPage() {
                 </div>
 
                 {/* Detect Buttons */}
-                <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
                   <button
                     onClick={handleDetect}
                     disabled={detectMutation.isPending}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 px-3 py-3 bg-black text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {detectMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Analyzing...
+                        <span className="hidden sm:inline">Analyzing...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        Detect Items
+                        <span className="hidden sm:inline">Detect Items</span>
                       </>
                     )}
                   </button>
@@ -167,17 +220,74 @@ export default function OutfitDetailPage() {
                   <button
                     onClick={handleDetectPose}
                     disabled={poseMutation.isPending}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 px-3 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {poseMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Analyzing...
+                        <span className="hidden sm:inline">Analyzing...</span>
                       </>
                     ) : (
                       <>
                         <User className="h-4 w-4" />
-                        Detect Pose
+                        <span className="hidden sm:inline">Detect Pose</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleExtractAttributes}
+                    disabled={attributesMutation.isPending}
+                    className="flex items-center justify-center gap-2 px-3 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    {attributesMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="hidden sm:inline">Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Palette className="h-4 w-4" />
+                        <span className="hidden sm:inline">Colors & Patterns</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleAnalyzeFit}
+                    disabled={fitMutation.isPending}
+                    className="flex items-center justify-center gap-2 px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    {fitMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="hidden sm:inline">Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shirt className="h-4 w-4" />
+                        <span className="hidden sm:inline">Analyze Fit</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* AI Style Analysis Button */}
+                <div className="mt-3">
+                  <button
+                    onClick={handleAnalyzeStyle}
+                    disabled={styleMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-lg hover:from-violet-700 hover:to-fuchsia-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
+                  >
+                    {styleMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>AI is thinking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="h-5 w-5" />
+                        <span>AI Style Analysis</span>
                       </>
                     )}
                   </button>
@@ -277,12 +387,311 @@ export default function OutfitDetailPage() {
                 </div>
               )}
 
+              {/* Attributes Results (Colors & Patterns) */}
+              {attributes.length > 0 && showAttributes && (
+                <div className="bg-white p-6 rounded-xl border">
+                  <h3 className="font-semibold mb-3">
+                    Color & Pattern Analysis ({attributes.length} items)
+                  </h3>
+                  <div className="space-y-4">
+                    {attributes.map((item, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gradient-to-r from-slate-50 to-purple-50 rounded-lg border"
+                      >
+                        {/* Item Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium capitalize text-lg">
+                              {item.class_name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Detection #{item.detection_id + 1}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-600 font-medium">
+                              {(item.confidence * 100).toFixed(1)}% confidence
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Colors Section */}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Dominant Colors
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {item.colors.map((color, colorIdx) => (
+                              <div
+                                key={colorIdx}
+                                className="flex items-center gap-2 bg-white px-3 py-2 rounded-md border shadow-sm"
+                              >
+                                <div
+                                  className="w-6 h-6 rounded border-2 border-slate-200 shadow-sm"
+                                  style={{ backgroundColor: color.hex }}
+                                  title={color.hex}
+                                />
+                                <div className="text-xs">
+                                  <p className="font-medium capitalize">{color.name}</p>
+                                  <p className="text-slate-500">{color.percentage.toFixed(1)}%</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Pattern Section */}
+                        <div className="pt-3 border-t">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Pattern Type
+                          </h4>
+                          <div className="flex items-center gap-3">
+                            <div className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium capitalize">
+                              {item.pattern.type}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {(item.pattern.confidence * 100).toFixed(0)}% confidence
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fit Analysis Results */}
+              {fitResults.length > 0 && showFit && (
+                <div className="bg-white p-6 rounded-xl border">
+                  <h3 className="font-semibold mb-3">
+                    Fit & Size Analysis ({fitResults.length} items)
+                  </h3>
+                  <div className="space-y-4">
+                    {fitResults.map((item, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border"
+                      >
+                        {/* Item Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium capitalize text-lg">
+                              {item.class_name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Detection #{item.detection_id + 1}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Fit Type Badge */}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Fit Type
+                          </h4>
+                          <div className="flex items-center gap-3">
+                            <div className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
+                              item.fit_type === 'slim' ? 'bg-green-100 text-green-800' :
+                              item.fit_type === 'regular' ? 'bg-blue-100 text-blue-800' :
+                              item.fit_type === 'oversized' ? 'bg-orange-100 text-orange-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {item.fit_type}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {(item.fit_confidence * 100).toFixed(0)}% confidence
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Size Recommendation */}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Estimated Size
+                          </h4>
+                          <div className="flex items-center gap-3">
+                            <div className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-full text-sm font-bold">
+                              {item.size_estimate}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {(item.size_confidence * 100).toFixed(0)}% confidence
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Fit Ratio Visualization */}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Fit Ratio: {item.fit_ratio}
+                          </h4>
+                          <div className="relative w-full h-6 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`absolute left-0 top-0 h-full rounded-full transition-all ${
+                                item.fit_type === 'slim' ? 'bg-green-500' :
+                                item.fit_type === 'regular' ? 'bg-blue-500' :
+                                item.fit_type === 'oversized' ? 'bg-orange-500' :
+                                'bg-red-500'
+                              }`}
+                              style={{ width: `${Math.min(item.fit_ratio * 50, 100)}%` }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-xs font-medium text-slate-700">
+                                {item.clothing_width.toFixed(0)}px / {item.body_width.toFixed(0)}px
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Reasoning */}
+                        <div className="pt-3 border-t">
+                          <h4 className="text-sm font-medium text-slate-700 mb-2">
+                            Analysis
+                          </h4>
+                          <p className="text-sm text-slate-600">
+                            {item.reasoning}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Error Display */}
-              {(detectMutation.isError || poseMutation.isError) && (
+              {(detectMutation.isError || poseMutation.isError || attributesMutation.isError || fitMutation.isError) && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
                   {detectMutation.isError && "Detection failed. "}
                   {poseMutation.isError && "Pose detection failed. "}
+                  {attributesMutation.isError && "Attribute extraction failed. "}
+                  {fitMutation.isError && "Fit analysis failed. "}
                   Make sure the backend is running and try again.
+                </div>
+              )}
+
+              {/* LLM Style Analysis Results */}
+              {styleAnalysis && (
+                <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 p-6 rounded-xl border-2 border-violet-200 shadow-lg animate-in fade-in duration-500">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Brain className="h-6 w-6 text-violet-600" />
+                    <h3 className="font-bold text-xl text-violet-900">AI Style Analysis</h3>
+                  </div>
+
+                  {/* Style Type Badge */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Style Classification</h4>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full text-lg font-bold capitalize shadow-md">
+                        {styleAnalysis.style.type}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-slate-600">Confidence:</div>
+                        <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                          {(styleAnalysis.style.confidence * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-slate-700 leading-relaxed">
+                      {styleAnalysis.style.description}
+                    </p>
+                  </div>
+
+                  {/* Outfit Suggestions */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Outfit Suggestions</h4>
+                    <div className="space-y-3">
+                      {styleAnalysis.suggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="bg-white rounded-lg border border-violet-200 overflow-hidden shadow-sm hover:shadow-md transition"
+                        >
+                          <button
+                            onClick={() => setExpandedSuggestion(expandedSuggestion === index ? null : index)}
+                            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-violet-50 transition"
+                          >
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-violet-900">{suggestion.title}</h5>
+                              <p className="text-sm text-slate-600 mt-1">{suggestion.description}</p>
+                            </div>
+                            {expandedSuggestion === index ? (
+                              <ChevronUp className="h-5 w-5 text-violet-600 flex-shrink-0 ml-2" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-violet-600 flex-shrink-0 ml-2" />
+                            )}
+                          </button>
+                          {expandedSuggestion === index && (
+                            <div className="px-4 pb-4 pt-2 bg-violet-50/50 border-t border-violet-100">
+                              <p className="text-sm font-medium text-slate-700 mb-2">Recommended Items:</p>
+                              <ul className="space-y-1">
+                                {suggestion.items.map((item, itemIndex) => (
+                                  <li key={itemIndex} className="text-sm text-slate-600 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-violet-600 rounded-full"></span>
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Search Keywords */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">E-Commerce Search Keywords</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {styleAnalysis.keywords.map((keyword, index) => (
+                        <SearchKeyword key={index} keyword={keyword} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Fashion Advice */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-violet-200">
+                    <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                      Fashion Advice
+                    </h4>
+                    <p className="text-sm text-slate-700 leading-relaxed">
+                      {styleAnalysis.advice}
+                    </p>
+                  </div>
+
+                  {/* Data Sources */}
+                  {styleAnalysis.data_sources && (
+                    <div className="mt-4 pt-4 border-t border-violet-200">
+                      <p className="text-xs text-slate-500 mb-2">Analysis based on:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {styleAnalysis.data_sources.detection && (
+                          <span className="px-2 py-1 bg-black text-white rounded text-xs">Item Detection</span>
+                        )}
+                        {styleAnalysis.data_sources.colors && (
+                          <span className="px-2 py-1 bg-purple-600 text-white rounded text-xs">Colors & Patterns</span>
+                        )}
+                        {styleAnalysis.data_sources.pose && (
+                          <span className="px-2 py-1 bg-slate-700 text-white rounded text-xs">Pose Analysis</span>
+                        )}
+                        {styleAnalysis.data_sources.fit && (
+                          <span className="px-2 py-1 bg-blue-600 text-white rounded text-xs">Fit Analysis</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Style Analysis Error */}
+              {styleMutation.isError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+                  <p className="font-semibold mb-1">AI Style Analysis Failed</p>
+                  <p>This could be due to:</p>
+                  <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
+                    <li>LLM service not configured (check .env file)</li>
+                    <li>No analysis data available (run detection/pose/attributes first)</li>
+                    <li>API rate limit reached</li>
+                    <li>Invalid API key</li>
+                  </ul>
                 </div>
               )}
             </div>
