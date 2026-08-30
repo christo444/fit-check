@@ -23,3 +23,6 @@ webcolors==1.13
 openai>=1.12.0
 anthropic>=0.18.0
 groq>=0.4.0
+
+# Phase 6: E-commerce Product Search
+duckduckgo-search>=6.1.7

@@ -8,7 +8,7 @@ import { getOutfitById, detectClothing, detectPose, extractAttributes, analyzeFi
 import { useState } from "react";
 import DetectionOverlay from "@/components/DetectionOverlay";
 import PoseOverlay from "@/components/PoseOverlay";
-import SearchKeyword from "@/components/SearchKeyword";
+import ProductRecommendations from "@/components/ProductRecommendations";
 
 export default function OutfitDetailPage() {
   const params = useParams();
@@ -571,113 +571,57 @@ export default function OutfitDetailPage() {
 
               {/* LLM Style Analysis Results */}
               {styleAnalysis && (
-                <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 p-6 rounded-xl border-2 border-violet-200 shadow-lg animate-in fade-in duration-500">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Brain className="h-6 w-6 text-violet-600" />
-                    <h3 className="font-bold text-xl text-violet-900">AI Style Analysis</h3>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-violet-600" />
+                      <h3 className="font-bold text-lg text-slate-900">AI Stylist</h3>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-sm font-semibold capitalize border border-violet-100">
+                      {styleAnalysis.style.type}
+                    </div>
                   </div>
 
-                  {/* Style Type Badge */}
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Style Classification</h4>
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <div className="px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full text-lg font-bold capitalize shadow-md">
-                        {styleAnalysis.style.type}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm text-slate-600">Confidence:</div>
-                        <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-                          {(styleAnalysis.style.confidence * 100).toFixed(0)}%
-                        </div>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-slate-700 leading-relaxed">
+                  {/* Minimalist Style Description Tooltip/Detail */}
+                  <details className="mb-6 group">
+                    <summary className="text-sm font-medium text-slate-500 cursor-pointer hover:text-slate-700 list-none flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Why this style?
+                    </summary>
+                    <p className="mt-2 text-sm text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
                       {styleAnalysis.style.description}
                     </p>
+                  </details>
+
+                  {/* Shop this Look (Auto-fetches products) */}
+                  <div className="mb-6">
+                    <ProductRecommendations keywords={styleAnalysis.keywords} />
                   </div>
 
-                  {/* Outfit Suggestions */}
+                  {/* Minimalist Outfit Suggestions */}
                   <div className="mb-6">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Outfit Suggestions</h4>
-                    <div className="space-y-3">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Suggested Pairings</h4>
+                    <ul className="space-y-2">
                       {styleAnalysis.suggestions.map((suggestion, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg border border-violet-200 overflow-hidden shadow-sm hover:shadow-md transition"
-                        >
-                          <button
-                            onClick={() => setExpandedSuggestion(expandedSuggestion === index ? null : index)}
-                            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-violet-50 transition"
-                          >
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-violet-900">{suggestion.title}</h5>
-                              <p className="text-sm text-slate-600 mt-1">{suggestion.description}</p>
-                            </div>
-                            {expandedSuggestion === index ? (
-                              <ChevronUp className="h-5 w-5 text-violet-600 flex-shrink-0 ml-2" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-violet-600 flex-shrink-0 ml-2" />
-                            )}
-                          </button>
-                          {expandedSuggestion === index && (
-                            <div className="px-4 pb-4 pt-2 bg-violet-50/50 border-t border-violet-100">
-                              <p className="text-sm font-medium text-slate-700 mb-2">Recommended Items:</p>
-                              <ul className="space-y-1">
-                                {suggestion.items.map((item, itemIndex) => (
-                                  <li key={itemIndex} className="text-sm text-slate-600 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-violet-600 rounded-full"></span>
-                                    {item}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                        <li key={index} className="flex items-start gap-2 text-sm text-slate-700">
+                          <span className="mt-1 flex-shrink-0 w-1.5 h-1.5 bg-violet-400 rounded-full"></span>
+                          <span>
+                            <strong className="text-slate-900 font-medium">{suggestion.title}: </strong>
+                            {suggestion.description}
+                          </span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
 
-                  {/* Search Keywords */}
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">E-Commerce Search Keywords</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {styleAnalysis.keywords.map((keyword, index) => (
-                        <SearchKeyword key={index} keyword={keyword} />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Fashion Advice */}
-                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-violet-200">
-                    <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-500" />
-                      Fashion Advice
-                    </h4>
-                    <p className="text-sm text-slate-700 leading-relaxed">
+                  {/* Minimalist Fashion Advice */}
+                  <div className="bg-amber-50/50 rounded-lg p-3 border border-amber-100 flex items-start gap-3">
+                    <Sparkles className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      <strong className="font-medium text-slate-800">Pro Tip: </strong>
                       {styleAnalysis.advice}
                     </p>
                   </div>
-
-                  {/* Data Sources */}
-                  {styleAnalysis.data_sources && (
-                    <div className="mt-4 pt-4 border-t border-violet-200">
-                      <p className="text-xs text-slate-500 mb-2">Analysis based on:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {styleAnalysis.data_sources.detection && (
-                          <span className="px-2 py-1 bg-black text-white rounded text-xs">Item Detection</span>
-                        )}
-                        {styleAnalysis.data_sources.colors && (
-                          <span className="px-2 py-1 bg-purple-600 text-white rounded text-xs">Colors & Patterns</span>
-                        )}
-                        {styleAnalysis.data_sources.pose && (
-                          <span className="px-2 py-1 bg-slate-700 text-white rounded text-xs">Pose Analysis</span>
-                        )}
-                        {styleAnalysis.data_sources.fit && (
-                          <span className="px-2 py-1 bg-blue-600 text-white rounded text-xs">Fit Analysis</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 

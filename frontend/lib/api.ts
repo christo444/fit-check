@@ -241,3 +241,21 @@ export async function analyzeStyle(outfitId: string): Promise<LLMResult> {
   return response.data;
 }
 
+// Phase 6: E-commerce Product Search API
+export interface SearchResult {
+  title: string;
+  url: string;
+  description: string;
+}
+
+export interface ShoppingSearchResponse {
+  success: boolean;
+  keyword: string;
+  results: SearchResult[];
+}
+
+export async function searchProducts(keyword: string): Promise<ShoppingSearchResponse> {
+  const response = await api.get(`/api/shopping-search?q=${encodeURIComponent(keyword)}`);
+  return response.data;
+}
+
