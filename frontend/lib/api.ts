@@ -259,3 +259,20 @@ export async function searchProducts(keyword: string): Promise<ShoppingSearchRes
   return response.data;
 }
 
+export interface VisualMatch {
+  title: string;
+  url: string;
+  source: string;
+  price: string;
+  thumbnail: string;
+}
+
+export interface VisualSearchResponse {
+  success: boolean;
+  results: VisualMatch[];
+}
+
+export async function searchVisualMatches(imageUrl: string): Promise<VisualSearchResponse> {
+  const response = await api.post('/api/visual-search', { image_url: imageUrl });
+  return response.data;
+}

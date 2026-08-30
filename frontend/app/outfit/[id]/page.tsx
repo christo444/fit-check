@@ -2,13 +2,13 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Sparkles, User, Palette, Shirt, Brain, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, User, Palette, Shirt, Brain, ChevronDown, ChevronUp, Camera } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getOutfitById, detectClothing, detectPose, extractAttributes, analyzeFit, analyzeStyle, Detection, Landmark, PoseConnection, Measurements, AttributeItem, FitItem, LLMResult } from "@/lib/api";
 import { useState } from "react";
 import DetectionOverlay from "@/components/DetectionOverlay";
 import PoseOverlay from "@/components/PoseOverlay";
-import ProductRecommendations from "@/components/ProductRecommendations";
+import VisualMatches from "@/components/VisualMatches";
 
 export default function OutfitDetailPage() {
   const params = useParams();
@@ -593,9 +593,9 @@ export default function OutfitDetailPage() {
                     </p>
                   </details>
 
-                  {/* Shop this Look (Auto-fetches products) */}
+                  {/* Shop this Exact Look (Visual Search) */}
                   <div className="mb-6">
-                    <ProductRecommendations keywords={styleAnalysis.keywords} />
+                    <VisualMatches imageUrl={outfit.image_url} />
                   </div>
 
                   {/* Minimalist Outfit Suggestions */}
